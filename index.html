@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE WORLD OF BUTTERFLIES — 3D Living Specimen</title>
+  <meta name="description" content="A showcase of aerodynamic architecture and microscopic wing scale venation. Experience the beauty with an authentic front-facing 3D perspective.">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%200%22%20100%22%20100%22><text y=%22.9em%22 font-size=%2290%22>🦋</text></svg>">
+
+  <!-- Google Fonts: Cormorant Garamond (Editorial Serif), Inter (Minimal Sans), Space Grotesk (Precision Labels) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Embedded Photorealistic Butterfly Asset -->
+  <script src="assets/images/butterfly_base64.js"></script>
+</head>
+<body class="loading-active">
+
+  <!-- MINIMAL PRELOADER -->
+  <div id="preloader" class="preloader" role="progressbar" aria-label="Loading 3D Specimen" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+    <div class="preloader-content">
+      <div class="preloader-crest">
+        <span class="crest-icon">🦋</span>
+        <span class="crest-subtitle">LEPIDOPTERA ARCHIVE</span>
+      </div>
+      <div class="preloader-bar-wrap">
+        <div id="preloader-bar" class="preloader-bar"></div>
+      </div>
+      <div class="preloader-meta">
+        <span class="preloader-label">AWAKENING SPECIMEN</span>
+        <span id="preloader-count" class="preloader-count">00%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM NATURAL CURSOR -->
+  <div id="cursor-dot" class="cursor-dot" aria-hidden="true"></div>
+  <div id="cursor-ring" class="cursor-ring" aria-hidden="true">
+    <span id="cursor-text" class="cursor-text"></span>
+  </div>
+
+  <!-- FIXED 3D BUTTERFLY WEBGL CONTAINER & BACKGROUND AURORA -->
+  <div id="canvas-container" class="canvas-container" aria-hidden="true">
+    <div class="aurora-streak"></div>
+    <canvas id="webgl-canvas"></canvas>
+    <div id="interactive-hint" class="interactive-hint">
+      <span class="hint-icon">⤾</span> Drag to Orbit 3D Specimen | Scroll to Continue
+    </div>
+  </div>
+
+  <!-- MINIMAL PINPOINT ANATOMY MARKERS (9 ANATOMICAL FEATURES) -->
+  <div id="hotspots-layer" class="hotspots-layer" aria-hidden="true">
+    <div id="hotspot-head" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">01 Head</span>
+    </div>
+    <div id="hotspot-antennae" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">02 Antennae</span>
+    </div>
+    <div id="hotspot-eyes" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">03 Compound Eyes</span>
+    </div>
+    <div id="hotspot-proboscis" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">04 Proboscis</span>
+    </div>
+    <div id="hotspot-thorax" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">05 Thorax</span>
+    </div>
+    <div id="hotspot-wings" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">06 Wings</span>
+    </div>
+    <div id="hotspot-scales" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">07 Wing Scales</span>
+    </div>
+    <div id="hotspot-legs" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">08 Legs</span>
+    </div>
+    <div id="hotspot-abdomen" class="hotspot-node">
+      <div class="marker-core"></div>
+      <span class="marker-tag">09 Abdomen</span>
+    </div>
+  </div>
+
+  <!-- MINIMAL EDITORIAL NAVIGATION (Seamlessly transparent on Hero, frosted on scroll) -->
+  <header id="site-header" class="site-header">
+    <div class="header-inner">
+      <a href="#hero" class="brand-link" aria-label="Butterfly World Home" data-cursor="EXPLORE">
+        <span class="brand-monogram">BUTTERFLY WORLD</span>
+        <span class="brand-sub">LEPIDOPTERA SPECIMEN</span>
+      </a>
+
+      <nav class="site-nav" aria-label="Main Navigation">
+        <ul class="nav-list">
+          <li><a href="#hero" class="nav-link" data-cursor="VIEW">Specimen</a></li>
+          <li><a href="#awakening" class="nav-link" data-cursor="VIEW">Awakening</a></li>
+          <li><a href="#anatomy-journey" class="nav-link" data-cursor="VIEW">Anatomy</a></li>
+          <li><a href="#flight" class="nav-link" data-cursor="VIEW">Flight</a></li>
+          <li><a href="#lifecycle" class="nav-link" data-cursor="VIEW">Metamorphosis</a></li>
+          <li><a href="#species" class="nav-link" data-cursor="VIEW">Species</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Scroll Journey Counter -->
+        <div class="journey-badge" aria-label="Current Chapter">
+          <span class="badge-label">CHAPTER</span>
+          <span id="journey-counter" class="badge-count">01 / 07</span>
+        </div>
+
+        <!-- 3D Free Inspect Toggle -->
+        <button id="inspect-btn" class="header-btn inspect-toggle" aria-label="Toggle 360 inspect mode" data-cursor="360°">
+          <span class="btn-icon">↺</span>
+          <span class="btn-text">360° Orbit</span>
+        </button>
+
+        <!-- Ambient Forest Audio Toggle -->
+        <button id="audio-btn" class="header-btn audio-toggle" aria-label="Toggle ambient forest soundscape" data-cursor="SOUND">
+          <span class="sound-bars">
+            <span class="sbar"></span>
+            <span class="sbar"></span>
+            <span class="sbar"></span>
+          </span>
+          <span class="audio-label">Sound</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN SCROLL STORYTELLING MASTER WRAPPER -->
+  <main id="smooth-wrapper" class="scroll-master">
+
+    <!-- STAGE 01: HERO — THE WORLD OF BUTTERFLIES (Matching Exact User Reference Design) -->
+    <section id="hero" class="narrative-section section-hero" aria-label="The World of Butterflies">
+      <div class="hero-container content-container">
+        <div class="hero-editorial-block">
+          <div class="hero-tag">
+            <span class="tag-text">MACRO SPECIMEN // DANAUS PLEXIPPUS</span>
+          </div>
+
+          <h1 class="hero-title">
+            <span class="title-line title-white">THE WORLD</span>
+            <span class="title-line title-white">OF</span>
+            <span class="title-line title-gold">BUTTERFLIES</span>
+          </h1>
+
+          <p class="hero-subtext">
+            A showcase of aerodynamic architecture and microscopic wing scale venation. Experience the beauty with an authentic front-facing 3D perspective.
+          </p>
+
+          <div class="hero-scroll-prompt" aria-label="Scroll to observe">
+            <div class="scroll-motif">
+              <span class="motif-ring"></span>
+              <span class="motif-line"></span>
+              <span class="motif-dot"></span>
+            </div>
+            <div class="scroll-label-stacked">
+              <span>SCROLL</span>
+              <span>TO OBSERVE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGE 02: AWAKENING IN THE CANOPY -->
+    <section id="awakening" class="narrative-section section-awakening" aria-label="Awakening">
+      <div class="awakening-container content-container">
+        <div class="editorial-card left-card">
+          <span class="chapter-num">CHAPTER 01 // SOLAR AWAKENING</span>
+          <h2 class="editorial-title">Thermal Flight <span class="text-italic">Activation.</span></h2>
+          <p class="editorial-lead">
+            Resting on rainforest petals in the morning mist, the butterfly absorbs radiant solar warmth through dark wing venation, warming thoracic flight muscles to 30°C before liftoff.
+          </p>
+          <div class="spec-metrics-row">
+            <div class="spec-metric">
+              <span class="sm-label">WINGSPAN</span>
+              <span class="sm-val">102 mm</span>
+            </div>
+            <div class="spec-metric">
+              <span class="sm-label">SOLAR ABSORPTION</span>
+              <span class="sm-val">94.8%</span>
+            </div>
+            <div class="spec-metric">
+              <span class="sm-label">FLIGHT STATE</span>
+              <span class="sm-val text-golden">PRIMED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGE 03: THE 9-PART LIVING ANATOMY JOURNEY -->
+    <div id="anatomy-journey" class="anatomy-journey-master" aria-label="Anatomical Journey">
+
+      <!-- Pinned Anatomy Stepper Navigation Bar -->
+      <div class="anatomy-progress-bar-wrap">
+        <div class="anatomy-stepper-header">
+          <span class="stepper-chapter">CHAPTER 02 // LIVING ANATOMY</span>
+          <span class="stepper-title">9 Biological Systems in Macro Focus</span>
+        </div>
+        <div class="anatomy-stepper-track" role="tablist">
+          <button class="anatomy-step-tab active" data-part="head" role="tab" aria-selected="true">
+            <span class="step-num">01</span><span class="step-name">Head</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="antennae" role="tab" aria-selected="false">
+            <span class="step-num">02</span><span class="step-name">Antennae</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="eyes" role="tab" aria-selected="false">
+            <span class="step-num">03</span><span class="step-name">Compound Eyes</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="proboscis" role="tab" aria-selected="false">
+            <span class="step-num">04</span><span class="step-name">Proboscis</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="thorax" role="tab" aria-selected="false">
+            <span class="step-num">05</span><span class="step-name">Thorax</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="wings" role="tab" aria-selected="false">
+            <span class="step-num">06</span><span class="step-name">Wings</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="scales" role="tab" aria-selected="false">
+            <span class="step-num">07</span><span class="step-name">Wing Scales</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="legs" role="tab" aria-selected="false">
+            <span class="step-num">08</span><span class="step-name">Legs</span>
+          </button>
+          <button class="anatomy-step-tab" data-part="abdomen" role="tab" aria-selected="false">
+            <span class="step-num">09</span><span class="step-name">Abdomen</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. HEAD -->
+      <section id="anatomy-head" class="narrative-section anatomy-stage-section" aria-label="Head Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="head">
+            <div class="card-badge">01 / 09 · CEPHALIC ARCHITECTURE</div>
+            <h2 class="card-part-title">The Sensory <span class="text-italic">Cockpit.</span></h2>
+            <p class="card-part-desc">
+              The cephalic capsule houses sensory input hubs: compound eyes, chemical antennae, and the feeding proboscis, coordinating navigation, flight trim, and floral chemoreception.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. ANTENNAE -->
+      <section id="anatomy-antennae" class="narrative-section anatomy-stage-section" aria-label="Antennae Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="antennae">
+            <div class="card-badge">02 / 09 · NAVIGATION RADAR</div>
+            <h2 class="card-part-title">Chemosensory <span class="text-italic">Antennae.</span></h2>
+            <p class="card-part-desc">
+              Clubbed antennae studded with thousands of sensilla hair receptors detect floral scents up to 3 km away. Johnston's organ at the base acts as an inertial flight gyroscopic compass.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. COMPOUND EYES -->
+      <section id="anatomy-eyes" class="narrative-section anatomy-stage-section" aria-label="Compound Eyes Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="eyes">
+            <div class="card-badge">03 / 09 · OPTICAL FACETS</div>
+            <h2 class="card-part-title">17,000 Hexagonal <span class="text-italic">Ommatidia.</span></h2>
+            <p class="card-part-desc">
+              Butterflies see in ultraviolet and polarized light, granting 340° panoramic vision to detect invisible nectar guide patterns on petals and track solar orientation during migration.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. PROBOSCIS -->
+      <section id="anatomy-proboscis" class="narrative-section anatomy-stage-section" aria-label="Proboscis Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="proboscis">
+            <div class="card-badge">04 / 09 · HYDRAULIC SIPHON</div>
+            <h2 class="card-part-title">The Coiled <span class="text-italic">Proboscis.</span></h2>
+            <p class="card-part-desc">
+              A dual-lumen capillary feeding straw that coils into a tight golden spiral beneath the head. Internal hydrostatic blood pressure uncoils the tube into deep nectar wells.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. THORAX -->
+      <section id="anatomy-thorax" class="narrative-section anatomy-stage-section" aria-label="Thorax Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="thorax">
+            <div class="card-badge">05 / 09 · FLIGHT ENGINE</div>
+            <h2 class="card-part-title">The Thoracic <span class="text-italic">Powerhouse.</span></h2>
+            <p class="card-part-desc">
+              A heavily sclerotized chitin cage housing asynchronous flight muscle groups. By deforming the thoracic box, it drives all four wing hinges at 12 beats per second with minimal energy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. WINGS -->
+      <section id="anatomy-wings" class="narrative-section anatomy-stage-section" aria-label="Wings Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="wings">
+            <div class="card-badge">06 / 09 · AEROFOIL MEMBRANE</div>
+            <h2 class="card-part-title">Biconvex Wing <span class="text-italic">Venation.</span></h2>
+            <p class="card-part-desc">
+              Supported by hollow, blood-filled vein struts that provide structural rigidity during high-speed gliding. Forewings and hindwings overlap to create a unified dynamic aerofoil.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. WING SCALES -->
+      <section id="anatomy-scales" class="narrative-section anatomy-stage-section" aria-label="Wing Scales Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="scales">
+            <div class="card-badge">07 / 09 · NANOSCALE TILES</div>
+            <h2 class="card-part-title">Overlapping <span class="text-italic">Wing Scales.</span></h2>
+            <p class="card-part-desc">
+              Shingled like roof tiles, microscopic chitin scales contain carotenoid pigments and micro-grooves that diffract light, shed raindrops, and generate low-drag laminar boundary layers.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8. LEGS -->
+      <section id="anatomy-legs" class="narrative-section anatomy-stage-section" aria-label="Legs Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="legs">
+            <div class="card-badge">08 / 09 · TACTILE GRIP</div>
+            <h2 class="card-part-title">Articulated <span class="text-italic">Tarsal Limbs.</span></h2>
+            <p class="card-part-desc">
+              Equipped with hooked pretarsal claws for perching in high winds. Specialized chemoreceptors on the feet allow females to "taste" leaf chemistry before laying single eggs.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 9. ABDOMEN -->
+      <section id="anatomy-abdomen" class="narrative-section anatomy-stage-section" aria-label="Abdomen Anatomy">
+        <div class="anatomy-stage-container content-container">
+          <div class="anatomy-narrative-card left-card" data-part="abdomen">
+            <div class="card-badge">09 / 09 · METABOLIC CORE</div>
+            <h2 class="card-part-title">Segmented <span class="text-italic">Abdomen.</span></h2>
+            <p class="card-part-desc">
+              Composed of 10 flexible chitin rings flanked by microscopic spiracle breathing valves. Contains the heart tube, fat storage bodies, and digestive organs that sustain transatlantic migration.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10. RETURN TO FULL BUTTERFLY VIEW -->
+      <section id="anatomy-return" class="narrative-section anatomy-stage-section anatomy-return-section" aria-label="Full Butterfly View">
+        <div class="anatomy-stage-container content-container text-center">
+          <div class="anatomy-narrative-card center-card" data-part="full">
+            <span class="card-badge">SYNTHESIS</span>
+            <h2 class="card-part-title">Harmonic Biological <span class="text-italic">Equilibrium.</span></h2>
+            <p class="card-part-desc">
+              All 9 microstructures working as a single aerodynamic organism. Proceed into flight physics and fluid mechanics.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- STAGE 04: HOW FLIGHT WORKS -->
+    <section id="flight" class="narrative-section section-flight" aria-label="Aerodynamics of Flight">
+      <div class="flight-container content-container">
+        <div class="editorial-card left-card">
+          <span class="chapter-num">CHAPTER 03 // AERODYNAMICS</span>
+          <h2 class="editorial-title">Clap-and-Fling <span class="text-italic">Vortex Lift.</span></h2>
+          <p class="editorial-lead">
+            Butterflies do not flap mechanically; at the peak of each upstroke, wings clap together and peel apart, capturing a low-pressure leading-edge vortex that generates double the lift of rigid aerofoils.
+          </p>
+          <div class="spec-metrics-row">
+            <div class="spec-metric">
+              <span class="sm-label">STROKE FREQUENCY</span>
+              <span class="sm-val">8–12 Hz</span>
+            </div>
+            <div class="spec-metric">
+              <span class="sm-label">LIFT MULTIPLIER</span>
+              <span class="sm-val">2.14×</span>
+            </div>
+            <div class="spec-metric">
+              <span class="sm-label">CAMBER FLEX</span>
+              <span class="sm-val text-golden">DYNAMIC</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGE 05: LIFE CYCLE & METAMORPHOSIS -->
+    <section id="lifecycle" class="narrative-section section-lifecycle" aria-label="Life Cycle and Metamorphosis">
+      <div class="lifecycle-container content-container">
+        <div class="editorial-header text-center">
+          <span class="chapter-num">CHAPTER 04 // HOLOMETABOLOUS CYCLE</span>
+          <h2 class="editorial-title">The Four Acts of Metamorphosis.</h2>
+          <p class="editorial-caption">From an embryonic gem to the winged imago.</p>
+        </div>
+
+        <div class="stages-carousel">
+          <div class="stage-step" data-stage="egg">
+            <div class="stage-tag">01 / EGG</div>
+            <h3 class="stage-name">The Embryonic Gem</h3>
+            <p class="stage-text">Sculpted barrel-shaped egg laid on milkweed leaves, fortified with structural ribs and microscopic respiration pores.</p>
+          </div>
+
+          <div class="stage-step" data-stage="caterpillar">
+            <div class="stage-tag">02 / LARVA</div>
+            <h3 class="stage-name">The Voracious Instar</h3>
+            <p class="stage-text">Striped caterpillar increases body mass by 3,000 times across 5 molting instars, storing cardenolide toxins for life.</p>
+          </div>
+
+          <div class="stage-step" data-stage="chrysalis">
+            <div class="stage-tag">03 / PUPA</div>
+            <h3 class="stage-name">The Jade Chrysalis</h3>
+            <p class="stage-text">Suspended by a silk button. Larval tissues dissolve into imaginal discs to reconstruct adult eyes, wings, and flight muscle.</p>
+          </div>
+
+          <div class="stage-step" data-stage="butterfly">
+            <div class="stage-tag">04 / IMAGO</div>
+            <h3 class="stage-name">The Winged Imago</h3>
+            <p class="stage-text">Adult emerges, pumping hemolymph through hollow wing veins to expand flight membranes into living art.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGE 06: SPECIES DIVERSITY -->
+    <section id="species" class="narrative-section section-species" aria-label="Butterfly Species Diversity">
+      <div class="species-container content-container">
+        <div class="editorial-header text-center">
+          <span class="chapter-num">CHAPTER 05 // STRUCTURAL COLORATION</span>
+          <h2 class="editorial-title">Crown Jewels of the Air.</h2>
+          <p class="editorial-caption">Select a specimen to observe real-time structural coloration and wing morphology.</p>
+        </div>
+
+        <!-- Species Selector Chips -->
+        <div class="species-selector-row">
+          <button class="species-btn" data-species="blue" data-cursor="SELECT">
+            <span class="species-swatch" style="background: linear-gradient(135deg, #0077ff, #00e5ff);"></span>
+            <span class="species-label">Blue</span>
+          </button>
+
+          <button class="species-btn active" data-species="orange" data-cursor="SELECT">
+            <span class="species-swatch" style="background: linear-gradient(135deg, #ff7700, #e65c00);"></span>
+            <span class="species-label">Orange</span>
+          </button>
+
+          <button class="species-btn" data-species="yellow" data-cursor="SELECT">
+            <span class="species-swatch" style="background: linear-gradient(135deg, #ffd700, #ff9900);"></span>
+            <span class="species-label">Yellow</span>
+          </button>
+
+          <button class="species-btn" data-species="red" data-cursor="SELECT">
+            <span class="species-swatch" style="background: linear-gradient(135deg, #ff2244, #b91528);"></span>
+            <span class="species-label">Red</span>
+          </button>
+
+          <button class="species-btn" data-species="green" data-cursor="SELECT">
+            <span class="species-swatch" style="background: linear-gradient(135deg, #00ff88, #00aa55);"></span>
+            <span class="species-label">Green</span>
+          </button>
+
+          <button class="species-btn" data-species="purple" data-cursor="SELECT">
+            <span class="species-swatch" style="background: linear-gradient(135deg, #9933ff, #6600cc);"></span>
+            <span class="species-label">Purple</span>
+          </button>
+        </div>
+
+        <!-- Specimen Visual Showcase Display -->
+        <div class="species-specimen-stage" aria-label="Butterfly Specimen Display">
+          <div class="species-image-wrapper">
+            <img
+              id="species-butterfly-img"
+              class="species-butterfly-img"
+              src="assets/images/species_orange_monarch.png"
+              alt="Monarch Butterfly Specimen"
+            />
+          </div>
+        </div>
+
+        <!-- Active Species Dossier -->
+        <div id="species-dossier" class="species-dossier">
+          <div class="dossier-inner">
+            <div class="dossier-header">
+              <span id="spec-latin" class="spec-latin">Danaus plexippus</span>
+              <h3 id="spec-common" class="spec-common">Monarch Butterfly</h3>
+            </div>
+            <p id="spec-desc" class="spec-desc">
+              Legendary transcontinental navigators migrating over 4,000 kilometers from Canada to the oyamel fir forests of central Mexico using an internal sun compass.
+            </p>
+            <div class="dossier-meta">
+              <div class="dmeta-col">
+                <span class="dm-key">HABITAT</span>
+                <span id="spec-habitat" class="dm-val">North American Meadows</span>
+              </div>
+              <div class="dmeta-col">
+                <span class="dm-key">SPECIAL ADAPTATION</span>
+                <span id="spec-adaptation" class="dm-val">Cardenolide Toxin Storage</span>
+              </div>
+              <div class="dmeta-col">
+                <span class="dm-key">WING PHENOMENON</span>
+                <span id="spec-phenom" class="dm-val">Aposematic Warning Color</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGE 07: POLLINATION & ECOSYSTEM -->
+    <section id="ecosystem" class="narrative-section section-ecosystem" aria-label="Ecosystem and Pollination">
+      <div class="ecosystem-container content-container">
+        <div class="editorial-card left-card">
+          <span class="chapter-num">CHAPTER 06 // SYMBIOSIS</span>
+          <h2 class="editorial-title">Guardians of <span class="text-italic text-golden">Biodiversity.</span></h2>
+          <p class="editorial-lead">
+            As butterflies flutter between wildflowers sipping nectar, their delicate legs and thorax transport vital pollen grains, fertilizing over <strong>75% of global flowering species</strong> and sustaining terrestrial life.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STAGE 08: FINAL CINEMATIC DEPARTURE -->
+    <section id="departure" class="narrative-section section-departure" aria-label="Final Departure">
+      <div class="departure-container content-container text-center">
+        <div class="departure-statement">
+          <span class="departure-tag">THE CONTINUOUS CYCLE</span>
+          <h2 class="departure-headline">
+            <span class="dep-line">Every Wing Tells</span>
+            <span class="dep-line text-italic text-golden">a Story.</span>
+          </h2>
+          <p class="departure-subtext">
+            Keep exploring the fragile wonders of our natural world. Protect wild habitats, cherish biodiversity, and walk with reverence.
+          </p>
+          <div class="departure-cta-wrap">
+            <a href="#hero" id="restart-journey-btn" class="editorial-cta-btn" data-cursor="RESTART">
+              <span>Observe Again</span>
+              <span class="btn-leaf-icon">↻</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTANICAL ARCHIVE FOOTER -->
+      <footer class="botanical-footer">
+        <div class="footer-inner content-container">
+          <div class="footer-col brand-col">
+         <div class="footerbrand-link">
+            <a href="#hero" class=" footer-brand" aria-label="Butterfly World Home" data-cursor="EXPLORE">
+              <span class="f-icon">🦋</span>
+              <span class="f-title">BUTTERFLY WORLD</span>
+            </a>
+            </div>
+            <p class="footer-desc">
+              A 3D digital sanctuary dedicated to the beauty, biology, and preservation of global Lepidoptera.
+            </p>
+          </div>
+
+          <div class="footer-col">
+            <span class="f-col-title">Navigation</span>
+            <ul class="f-links">
+              <li><a href="#hero">Specimen</a></li>
+              <li><a href="#awakening">Awakening</a></li>
+              <li><a href="#anatomy-journey">Anatomy</a></li>
+              <li><a href="#flight">Flight Physics</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <span class="f-col-title">Science</span>
+            <ul class="f-links">
+              <li><a href="#lifecycle">Metamorphosis</a></li>
+              <li><a href="#species">Species Atlas</a></li>
+              <li><a href="#ecosystem">Symbiosis</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <span class="f-col-title">Conservation</span>
+            <ul class="f-links">
+              <li><a href="https://xerces.org" target="_blank" rel="noopener">Xerces Society</a></li>
+              <li><a href="https://monarchwatch.org" target="_blank" rel="noopener">Monarch Watch</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom-bar content-container">
+          <p class="f-copyright">© 2026 BUTTERFLY WORLD EXHIBIT. REAL-TIME 3D NATURAL HISTORY.</p>
+          <span class="f-status"><span class="pulse-dot"></span> WEBGL 3D KINEMATICS ACTIVE</span>
+        </div>
+      </footer>
+    </section>
+
+  </main>
+
+  <!-- SCRIPTS -->
+  <script src="js/vendor/three.min.js"></script>
+  <script>if (!window.THREE) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\\/script>');</script>
+
+  <script src="js/vendor/gsap.min.js"></script>
+  <script>if (!window.gsap) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\\/script>');</script>
+
+  <script src="js/vendor/ScrollTrigger.min.js"></script>
+  <script>if (!window.ScrollTrigger) document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"><\\/script>');</script>
+
+  <!-- Application Modules -->
+  <script src="js/scene.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/responsive.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>
