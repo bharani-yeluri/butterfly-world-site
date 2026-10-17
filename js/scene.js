@@ -27,6 +27,8 @@ window.NXScene = (function () {
   let isModelLoaded = false;
   let onProgressCallback = null;
   let onLoadedCallback = null;
+  let flyingButterflies = [];
+  let lastFrameTime = 0;
 
   // Lighting References
   let sunLight, rimLightGold, rimLightCool, ambientLight;
@@ -151,12 +153,12 @@ window.NXScene = (function () {
     // Tablet Portrait (768px)
     if (w >= 601) {
       const proportionalRatio = Math.min(w / 768, h / 1024);
-      const baseScale = Math.max(0.30, Math.min(0.37, 0.34 * proportionalRatio));
+      const baseScale = Math.max(0.26, Math.min(0.32, 0.28 * proportionalRatio));
       return {
         isDesktop: false,
         baseScale: baseScale,
         heroX: 0.0,
-        heroY: 0.05,
+        heroY: 0.38,
         cameraZ: 5.60,
         fov: 34
       };
@@ -165,12 +167,12 @@ window.NXScene = (function () {
     // Phablet / Small Tablet (600px)
     if (w >= 481) {
       const proportionalRatio = Math.min(w / 540, h / 800);
-      const baseScale = Math.max(0.26, Math.min(0.32, 0.28 * proportionalRatio));
+      const baseScale = Math.max(0.22, Math.min(0.26, 0.23 * proportionalRatio));
       return {
         isDesktop: false,
         baseScale: baseScale,
         heroX: 0.0,
-        heroY: 0.06,
+        heroY: 0.42,
         cameraZ: 5.70,
         fov: 34
       };
@@ -179,12 +181,12 @@ window.NXScene = (function () {
     // Mobile (480px)
     if (w >= 391) {
       const proportionalRatio = Math.min(w / 414, h / 896);
-      const baseScale = Math.max(0.23, Math.min(0.27, 0.25 * proportionalRatio));
+      const baseScale = Math.max(0.19, Math.min(0.23, 0.20 * proportionalRatio));
       return {
         isDesktop: false,
         baseScale: baseScale,
         heroX: 0.0,
-        heroY: 0.07,
+        heroY: 0.47,
         cameraZ: 5.80,
         fov: 34
       };
@@ -193,12 +195,12 @@ window.NXScene = (function () {
     // Standard Mobile (390px, 360px)
     if (w >= 341) {
       const proportionalRatio = Math.min(w / 375, h / 812);
-      const baseScale = Math.max(0.20, Math.min(0.24, 0.215 * proportionalRatio));
+      const baseScale = Math.max(0.175, Math.min(0.21, 0.185 * proportionalRatio));
       return {
         isDesktop: false,
         baseScale: baseScale,
         heroX: 0.0,
-        heroY: 0.08,
+        heroY: 0.49,
         cameraZ: 5.85,
         fov: 34
       };
@@ -207,9 +209,9 @@ window.NXScene = (function () {
     // Smallest Mobile (320px)
     return {
       isDesktop: false,
-      baseScale: 0.20,
+      baseScale: 0.175,
       heroX: 0.0,
-      heroY: 0.08,
+      heroY: 0.50,
       cameraZ: 5.85,
       fov: 34
     };
@@ -598,6 +600,9 @@ window.NXScene = (function () {
     scene.add(butterflyRoot);
     isModelLoaded = true;
 
+    // Natural ambient butterflies flying freely into the scene from the top
+    setupFlyingButterflies(photoTexture);
+
     if (typeof onLoadedCallback === 'function') onLoadedCallback();
     console.log('[NXScene] 3D Butterfly Mesh constructed with smooth organic blending and initial assembly parts.');
   }
@@ -936,6 +941,268 @@ window.NXScene = (function () {
   }
 
   /**
+   * Natural Ambient Flying Butterflies System
+   * Butterflies enter naturally from the top of the viewport, flying freely
+   * across the scene with rapid realistic wing-flapping, continuous organic
+   * curves, small turns, and banking.
+   */
+  function setupFlyingButterflies(photoTexture) {
+    if (!scene || flyingButterflies.length > 0) return;
+
+    const butterflyConfigs = [
+      { name: 'Monarch', color: new THREE.Color(1.0, 1.0, 1.0), scale: 0.28, baseSpeed: 1.25, flapFreq: 34.0, amp: 0.85 },
+      { name: 'Blue Morpho', color: new THREE.Color(0.28, 0.90, 1.6), scale: 0.32, baseSpeed: 1.38, flapFreq: 31.0, amp: 0.90 },
+      { name: 'Golden Swallowtail', color: new THREE.Color(1.35, 1.18, 0.35), scale: 0.26, baseSpeed: 1.30, flapFreq: 36.0, amp: 0.80 },
+      { name: 'Emerald Swallowtail', color: new THREE.Color(0.35, 1.45, 0.75), scale: 0.30, baseSpeed: 1.35, flapFreq: 32.0, amp: 0.88 },
+      { name: 'Monarch Amber', color: new THREE.Color(1.15, 0.85, 0.40), scale: 0.24, baseSpeed: 1.20, flapFreq: 38.0, amp: 0.82 },
+      { name: 'Purple Emperor', color: new THREE.Color(1.15, 0.45, 1.6), scale: 0.27, baseSpeed: 1.32, flapFreq: 33.0, amp: 0.85 }
+    ];
+
+    // Shared wing geometries with centered dorsal hinge pivots
+    const wingW = 0.96;
+    const wingH = 0.96;
+
+    // Left wing: pivot at right edge (x = 0)
+    const leftGeom = new THREE.PlaneGeometry(wingW, wingH, 6, 6);
+    leftGeom.translate(-wingW / 2, 0, 0);
+    const leftUv = leftGeom.attributes.uv;
+    for (let i = 0; i < leftUv.count; i++) {
+      leftUv.setX(i, leftUv.getX(i) * 0.485);
+    }
+    leftUv.needsUpdate = true;
+
+    // Right wing: pivot at left edge (x = 0)
+    const rightGeom = new THREE.PlaneGeometry(wingW, wingH, 6, 6);
+    rightGeom.translate(wingW / 2, 0, 0);
+    const rightUv = rightGeom.attributes.uv;
+    for (let i = 0; i < rightUv.count; i++) {
+      rightUv.setX(i, 0.515 + rightUv.getX(i) * 0.485);
+    }
+    rightUv.needsUpdate = true;
+
+    // Center body
+    const bodyGeom = new THREE.PlaneGeometry(0.18, 0.92, 2, 4);
+    const bodyUv = bodyGeom.attributes.uv;
+    for (let i = 0; i < bodyUv.count; i++) {
+      bodyUv.setX(i, 0.44 + bodyUv.getX(i) * 0.12);
+    }
+    bodyUv.needsUpdate = true;
+
+    // Initial staggered entry positions: entering from the top canopy
+    const initialOffsets = [
+      { x: -1.4, y: 2.4, z: 0.1, vx: 0.45, vy: -1.05, vz: -0.05 },  // Entering top-left
+      { x: 0.8, y: 2.7, z: -0.4, vx: -0.35, vy: -1.15, vz: 0.08 },  // Entering top-center/right
+      { x: 1.8, y: 1.4, z: -0.8, vx: -0.75, vy: -0.45, vz: 0.10 },  // Upper canopy flight right
+      { x: -1.6, y: 1.1, z: 0.3, vx: 0.65, vy: 0.25, vz: -0.08 },   // Upper canopy flight left ascending
+      { x: 0.4, y: 0.85, z: -0.3, vx: 0.55, vy: 0.35, vz: 0.05 },   // Upper canopy swoop
+      { x: -0.5, y: 2.9, z: -0.2, vx: 0.25, vy: -1.20, vz: -0.06 }   // High canopy entering top
+    ];
+
+    butterflyConfigs.forEach((cfg, idx) => {
+      const root = new THREE.Group();
+      root.name = `FlyingButterfly_${cfg.name.replace(/\s+/g, '_')}_${idx}`;
+
+      const rollGroup = new THREE.Group();
+      const modelGroup = new THREE.Group();
+      // Orient butterfly model: head (was +Y) points forward along -Z; dorsal faces up along +Y
+      modelGroup.rotation.x = -Math.PI / 2;
+
+      // Realistic velvety material matching specimen lighting
+      const mat = new THREE.MeshStandardMaterial({
+        map: photoTexture,
+        color: cfg.color,
+        transparent: true,
+        alphaTest: 0.08,
+        depthWrite: false,
+        roughness: 0.80,
+        metalness: 0.0,
+        side: THREE.DoubleSide
+      });
+
+      const leftPivot = new THREE.Group();
+      const leftMesh = new THREE.Mesh(leftGeom, mat);
+      leftMesh.renderOrder = 4;
+      leftPivot.add(leftMesh);
+
+      const rightPivot = new THREE.Group();
+      const rightMesh = new THREE.Mesh(rightGeom, mat);
+      rightMesh.renderOrder = 4;
+      rightPivot.add(rightMesh);
+
+      const bodyMesh = new THREE.Mesh(bodyGeom, mat);
+      bodyMesh.renderOrder = 4;
+
+      modelGroup.add(leftPivot);
+      modelGroup.add(rightPivot);
+      modelGroup.add(bodyMesh);
+
+      rollGroup.add(modelGroup);
+      root.add(rollGroup);
+
+      root.scale.set(cfg.scale, cfg.scale, cfg.scale);
+
+      const init = initialOffsets[idx % initialOffsets.length];
+      const pos = new THREE.Vector3(init.x, init.y, init.z);
+      const vel = new THREE.Vector3(init.vx, init.vy, init.vz).normalize().multiplyScalar(cfg.baseSpeed);
+
+      root.position.copy(pos);
+      scene.add(root);
+
+      flyingButterflies.push({
+        group: root,
+        rollGroup: rollGroup,
+        modelGroup: modelGroup,
+        leftPivot: leftPivot,
+        rightPivot: rightPivot,
+        material: mat,
+        pos: pos,
+        vel: vel,
+        baseSpeed: cfg.baseSpeed,
+        scale: cfg.scale,
+        flapFrequency: cfg.flapFreq,
+        flapAmplitude: cfg.amp,
+        wingPhase: Math.random() * Math.PI * 2,
+        turnSeed: Math.random() * 200 + idx * 50,
+        pitchSeed: Math.random() * 200 + idx * 40,
+        currentBank: 0,
+        glideTimer: 0,
+        isGliding: false
+      });
+    });
+
+    console.log(`[NXScene] Initialized ${flyingButterflies.length} natural flying butterflies entering from the top.`);
+  }
+
+  function resetFlyingButterfly(b, forceTop = true) {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 820;
+    // On mobile, entries are 100% from top edge of viewport to stay in upper canopy
+    const fromTop = forceTop || isMobile || Math.random() < 0.85;
+
+    if (fromTop) {
+      b.pos.x = (Math.random() - 0.5) * (isMobile ? 3.6 : 4.4);
+      b.pos.y = 2.2 + Math.random() * 0.9; // Above top edge of viewport
+      b.pos.z = -1.2 + Math.random() * 1.5;
+
+      // Descending smoothly into the viewport
+      const angle = -Math.PI * 0.5 + (Math.random() - 0.5) * 0.85; // generally down, ±24 deg
+      const speed = b.baseSpeed * (0.92 + Math.random() * 0.25);
+      b.vel.set(
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        (Math.random() - 0.5) * 0.18
+      );
+    } else {
+      const leftSide = Math.random() < 0.5;
+      b.pos.x = leftSide ? -3.2 : 3.2;
+      b.pos.y = 1.3 + Math.random() * 1.3;
+      b.pos.z = -1.0 + Math.random() * 1.4;
+
+      const targetX = (Math.random() - 0.5) * 1.8;
+      const targetY = 0.6 + Math.random() * 0.8;
+      const dir = new THREE.Vector3(targetX - b.pos.x, targetY - b.pos.y, (Math.random() - 0.5) * 0.4).normalize();
+      b.vel.copy(dir).multiplyScalar(b.baseSpeed);
+    }
+
+    b.turnSeed = Math.random() * 300;
+    b.pitchSeed = Math.random() * 300;
+    b.currentBank = 0;
+    b.glideTimer = 0;
+    b.isGliding = false;
+    b.group.position.copy(b.pos);
+  }
+
+  /**
+   * Update all flying butterflies:
+   * Continuous organic flight paths, rapid wing flapping, gentle turns, banking,
+   * natural variations in speed, and smooth entry/exit looping.
+   */
+  function updateFlyingButterflies(time, delta) {
+    if (!flyingButterflies || flyingButterflies.length === 0) return;
+
+    const lookTarget = new THREE.Vector3();
+
+    for (let i = 0; i < flyingButterflies.length; i++) {
+      const b = flyingButterflies[i];
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 820;
+      // On mobile: constrain flight area strictly to upper canopy so butterflies never cross description text
+      const minFlightY = isMobile ? 0.22 : -2.4;
+      const bottomLiftTrigger = isMobile ? 0.50 : -0.4;
+
+      // 1. Organic Steering Forces (Harmonic Noise Curves)
+      const t = time * 1.15 + b.turnSeed;
+      const steerX = Math.sin(t * 1.2) * 0.85 + Math.cos(t * 0.55) * 0.45;
+      
+      // Vertical lift / buoyancy: provides upward swoops when lower on screen
+      let liftY = Math.sin(t * 1.6 + b.pitchSeed) * 0.35;
+      if (b.pos.y < bottomLiftTrigger) {
+        liftY += isMobile ? 2.4 : 0.95; // Strong gentle thermal rise above description
+      } else if (b.pos.y > (isMobile ? 2.2 : 1.8) && b.vel.y > 0) {
+        liftY -= 0.65; // Direct back downwards into the canopy
+      }
+
+      const steerZ = Math.cos(t * 0.85) * 0.30;
+
+      // Apply acceleration
+      b.vel.x += steerX * delta * 1.15;
+      b.vel.y += (liftY - 0.12) * delta * 1.10;
+      b.vel.z += steerZ * delta * 0.75;
+
+      // Speed regulation with natural flutter bursts
+      b.glideTimer += delta;
+      if (b.glideTimer > 2.8 + (i % 3) * 0.6) {
+        b.isGliding = !b.isGliding;
+        b.glideTimer = 0;
+      }
+
+      const speedFactor = b.isGliding ? 0.88 : (1.05 + Math.sin(time * 6.0 + i) * 0.15);
+      const targetSpeed = b.baseSpeed * speedFactor;
+      b.vel.normalize().multiplyScalar(targetSpeed);
+
+      // Move position
+      b.pos.addScaledVector(b.vel, delta);
+      b.group.position.copy(b.pos);
+
+      // 2. Viewport Boundary Check -> Smooth Continuous Respawn from Top
+      if (b.pos.y < minFlightY || b.pos.x < -3.9 || b.pos.x > 3.9 || b.pos.y > 3.6 || b.pos.z < -2.6 || b.pos.z > 1.6) {
+        resetFlyingButterfly(b, true);
+        continue;
+      }
+
+      // 3. Orient 3D Butterfly Along Flight Vector
+      lookTarget.copy(b.pos).add(b.vel);
+      b.group.lookAt(lookTarget);
+
+      // 4. Realistic Aerodynamic Bank (Roll) into Curves
+      const targetBank = -steerX * 0.42;
+      b.currentBank += (targetBank - b.currentBank) * 0.08;
+      b.rollGroup.rotation.z = b.currentBank;
+
+      // 5. Rapid Biological Wing Flapping
+      const flapRate = b.isGliding ? b.flapFrequency * 0.45 : b.flapFrequency;
+      b.wingPhase += delta * flapRate;
+
+      const flapSin = Math.sin(b.wingPhase);
+      // Asymmetric wing stroke: snappy downstroke, graceful upstroke
+      const flapCurve = flapSin >= 0 ? Math.pow(flapSin, 0.88) : -Math.pow(-flapSin, 1.12);
+      const flapAmp = b.isGliding ? b.flapAmplitude * 0.35 : b.flapAmplitude;
+      const flapAngle = 0.14 + flapCurve * flapAmp;
+
+      b.leftPivot.rotation.y = flapAngle;
+      b.rightPivot.rotation.y = -flapAngle;
+
+      // Aerodynamic wing twist flex (angle of attack)
+      const twist = Math.cos(b.wingPhase) * (b.isGliding ? 0.04 : 0.14);
+      b.leftPivot.rotation.x = twist;
+      b.rightPivot.rotation.x = twist;
+
+      // Micro-bobbing of body in sync with wing stroke
+      const bodyBob = -flapCurve * (b.isGliding ? 0.006 : 0.024);
+      b.modelGroup.position.y = bodyBob;
+      b.modelGroup.rotation.y = Math.cos(b.wingPhase * 0.5) * 0.04;
+    }
+  }
+
+  /**
    * Switch Active Species Morphology & Structural Coloration
    */
   function setSpecies(speciesKey) {
@@ -1159,6 +1426,8 @@ window.NXScene = (function () {
     requestAnimationFrame(animate);
 
     const time = clock.getElapsedTime();
+    const delta = lastFrameTime > 0 ? Math.min(time - lastFrameTime, 0.05) : 0.016;
+    lastFrameTime = time;
 
     // 1. Mouse Parallax Easing
     mouse.x += (mouse.targetX - mouse.x) * 0.04;
@@ -1204,11 +1473,11 @@ window.NXScene = (function () {
         const posAttr = butterflyMesh.geometry.attributes.position;
         const count = posAttr.count;
 
-        // Subtle biological breathing (2.2s period, ~0.025 rad flex)
-        const breathFlutter = Math.sin(time * 2.2) * 0.025;
+        // Biological breathing with delicate vital micro-flutter
+        const breathFlutter = Math.sin(time * 2.2) * 0.025 + Math.sin(time * 24.0) * 0.015;
 
-        // Flight flap wave (15-20% slightly increased speed: 16.0 -> 19.0 = +18.75%)
-        const flightFlap = Math.sin(time * 19.0) * 0.40;
+        // Realistic fast flight flap wave (rapid flutter ~28 rad/s with lively harmonics)
+        const flightFlap = Math.sin(time * 28.0) * 0.42 + Math.sin(time * 14.0) * 0.08;
 
         const effectiveAngle = currentWingAngle + (1.0 - flightIntensity) * breathFlutter + flightIntensity * flightFlap;
 
@@ -1297,10 +1566,13 @@ window.NXScene = (function () {
       posAttr.needsUpdate = true;
     }
 
-    // 6. Project 3D Hotspots
+    // 6. Natural Ambient Flying Butterflies (Smooth Organic Flight & Rapid Flapping)
+    updateFlyingButterflies(time, delta);
+
+    // 7. Project 3D Hotspots
     updateHotspots();
 
-    // 7. Render
+    // 8. Render
     renderer.render(scene, camera);
   }
 
