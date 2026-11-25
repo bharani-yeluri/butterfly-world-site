@@ -110,7 +110,7 @@ window.NXAnimations = (function () {
       trigger: '#hero',
       start: 'top top',
       end: 'bottom top',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -174,7 +174,7 @@ window.NXAnimations = (function () {
       trigger: '#awakening',
       start: 'top 80%',
       end: 'bottom 40%',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -227,7 +227,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-head',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'head'); activateAnatomyTab('head'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'head'); activateAnatomyTab('head'); },
       onUpdate: (self) => {
@@ -251,7 +251,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-antennae',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'antennae'); activateAnatomyTab('antennae'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'antennae'); activateAnatomyTab('antennae'); },
       onUpdate: (self) => {
@@ -273,7 +273,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-eyes',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'eyes'); activateAnatomyTab('eyes'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'eyes'); activateAnatomyTab('eyes'); },
       onUpdate: (self) => {
@@ -295,7 +295,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-proboscis',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'proboscis'); activateAnatomyTab('proboscis'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'proboscis'); activateAnatomyTab('proboscis'); },
       onUpdate: (self) => {
@@ -317,7 +317,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-thorax',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'thorax'); activateAnatomyTab('thorax'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'thorax'); activateAnatomyTab('thorax'); },
       onUpdate: (self) => {
@@ -339,7 +339,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-wings',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'wings'); activateAnatomyTab('wings'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'wings'); activateAnatomyTab('wings'); },
       onUpdate: (self) => {
@@ -361,7 +361,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-scales',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'scales'); activateAnatomyTab('scales'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'scales'); activateAnatomyTab('scales'); },
       onUpdate: (self) => {
@@ -383,7 +383,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-legs',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'legs'); activateAnatomyTab('legs'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'legs'); activateAnatomyTab('legs'); },
       onUpdate: (self) => {
@@ -405,7 +405,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-abdomen',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(true, 'abdomen'); activateAnatomyTab('abdomen'); },
       onEnterBack: () => { NXScene.setHotspotsVisible(true, 'abdomen'); activateAnatomyTab('abdomen'); },
       onUpdate: (self) => {
@@ -427,7 +427,7 @@ window.NXAnimations = (function () {
       trigger: '#anatomy-return',
       start: 'top 80%',
       end: 'bottom 30%',
-      scrub: 1.4,
+      scrub: 0.85,
       onEnter: () => { NXScene.setHotspotsVisible(false); activateAnatomyTab(null); },
       onEnterBack: () => { NXScene.setHotspotsVisible(false); activateAnatomyTab(null); },
       onUpdate: (self) => {
@@ -452,7 +452,7 @@ window.NXAnimations = (function () {
       trigger: '#flight',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -477,8 +477,8 @@ window.NXAnimations = (function () {
         );
 
         // Smooth scroll-driven wing opening and closing flight cycle
-        // Flap wave: opens flat (0.05), closes up (0.55), opens down (15-20% increased speed: 3.0 -> 3.55)
-        const flapCycle = Math.sin(p * Math.PI * 3.55);
+        // Flap wave: opens flat (0.05), closes up (0.55), opens down (lively energetic cadence)
+        const flapCycle = Math.sin(p * Math.PI * 4.45);
         NXScene.wingAngle = 0.25 + flapCycle * 0.35;
         NXScene.flightIntensity = gsap.utils.interpolate(0.0, 0.85, p);
         NXScene.setHotspotsVisible(false);
@@ -492,7 +492,7 @@ window.NXAnimations = (function () {
       trigger: '#lifecycle',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -545,7 +545,7 @@ window.NXAnimations = (function () {
       trigger: '#species',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -591,7 +591,7 @@ window.NXAnimations = (function () {
       trigger: '#ecosystem',
       start: 'top 75%',
       end: 'bottom 45%',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -636,7 +636,7 @@ window.NXAnimations = (function () {
       trigger: '#departure',
       start: 'top 80%',
       end: 'bottom bottom',
-      scrub: 1.4,
+      scrub: 0.85,
       onUpdate: (self) => {
         const p = self.progress;
 
@@ -652,7 +652,7 @@ window.NXAnimations = (function () {
 
           NXScene.modelRot.set(-0.14, 0.04, 0);
           NXScene.modelScale = gsap.utils.interpolate(getBaseScale(), getBaseScale() * 0.78, p);
-          NXScene.wingAngle = 0.25 + Math.sin(p * Math.PI * 4.75) * 0.30;
+          NXScene.wingAngle = 0.25 + Math.sin(p * Math.PI * 5.85) * 0.30;
           NXScene.flightIntensity = gsap.utils.interpolate(0.35, 0.80, p);
           NXScene.setHotspotsVisible(false);
         } else {
@@ -668,7 +668,7 @@ window.NXAnimations = (function () {
 
           NXScene.modelRot.set(-0.14, 0.0, 0);
           NXScene.modelScale = gsap.utils.interpolate(getBaseScale(), getBaseScale() * 0.40, p);
-          NXScene.wingAngle = 0.25 + Math.sin(p * Math.PI * 4.75) * 0.30;
+          NXScene.wingAngle = 0.25 + Math.sin(p * Math.PI * 5.85) * 0.30;
           NXScene.flightIntensity = gsap.utils.interpolate(0.35, 0.80, p);
           NXScene.setHotspotsVisible(false);
         }

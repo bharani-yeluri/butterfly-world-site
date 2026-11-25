@@ -39,9 +39,6 @@ window.NXScene = (function () {
       name: "Blue Morpho",
       latin: "Morpho peleides",
       image: "assets/images/species_blue_morpho.png",
-      colorFilter: new THREE.Color(0.25, 0.85, 1.6),
-      roughness: 0.55,
-      metalness: 0.25,
       desc: "Dazzling Neotropical jewel whose wings contain no blue pigment; nanoscale chitin Christmas-tree ribs reflect only electric blue light.",
       habitat: "Central & South American Rainforest Canopies",
       adaptation: "Flash-and-Dazzle Predator Confusion",
@@ -51,9 +48,6 @@ window.NXScene = (function () {
       name: "Monarch Butterfly",
       latin: "Danaus plexippus",
       image: "assets/images/species_orange_monarch.png",
-      colorFilter: new THREE.Color(1.0, 1.0, 1.0),
-      roughness: 0.85,
-      metalness: 0.0,
       desc: "Legendary transcontinental navigators migrating over 4,000 km across North America using an internal magnetic & sun compass.",
       habitat: "North American Meadows & Milkweed Sanctuaries",
       adaptation: "Cardenolide Toxin Storage",
@@ -63,9 +57,6 @@ window.NXScene = (function () {
       name: "Golden Swallowtail",
       latin: "Papilio machaon",
       image: "assets/images/species_yellow_swallowtail.png",
-      colorFilter: new THREE.Color(1.3, 1.15, 0.3),
-      roughness: 0.65,
-      metalness: 0.15,
       desc: "Luminous European & Arctic alpine glider sporting brilliant yellow scales infused with lutein pigment alongside deep black vein ribbing.",
       habitat: "Subalpine Meadows & Palearctic Steppes",
       adaptation: "Aerodynamic Forked Wing Tails",
@@ -75,9 +66,6 @@ window.NXScene = (function () {
       name: "Scarlet Postman",
       latin: "Heliconius melpomene",
       image: "assets/images/species_red_postman.png",
-      colorFilter: new THREE.Color(1.5, 0.25, 0.35),
-      roughness: 0.70,
-      metalness: 0.10,
       desc: "Vivid Amazonian passionflower specialist possessing cyanide glycoside immunity and co-evolved Müllerian mimicry rings.",
       habitat: "Amazonian Basin & Understory Vine Forests",
       adaptation: "Cyanogenic Glycoside Defenses",
@@ -87,9 +75,6 @@ window.NXScene = (function () {
       name: "Emerald Swallowtail",
       latin: "Papilio palinurus",
       image: "assets/images/species_green_swallowtail.png",
-      colorFilter: new THREE.Color(0.3, 1.45, 0.8),
-      roughness: 0.60,
-      metalness: 0.20,
       desc: "One of the few butterflies with brilliant emerald coloration, produced by concave micro-cavities reflecting yellow and blue wavelengths simultaneously.",
       habitat: "Southeast Asian River Valleys & Lowland Forests",
       adaptation: "Scalloped Wing Tails & Aerodynamic Gliding",
@@ -99,9 +84,6 @@ window.NXScene = (function () {
       name: "Purple Emperor",
       latin: "Apatura iris",
       image: "assets/images/species_purple_emperor.png",
-      colorFilter: new THREE.Color(1.1, 0.4, 1.6),
-      roughness: 0.50,
-      metalness: 0.30,
       desc: "Majestic European canopy dweller whose dorsal wings flash deep iridescent violet-purple when angled precisely to incoming sunlight.",
       habitat: "Ancient Oak & Sallow Deciduous Canopies",
       adaptation: "High-Canopy Territorial Dominance",
@@ -113,6 +95,15 @@ window.NXScene = (function () {
   speciesData.monarch = speciesData.orange;
   speciesData.morpho = speciesData.blue;
   speciesData.swallowtail = speciesData.green;
+
+  const speciesAliasMap = {
+    monarch: 'orange',
+    morpho: 'blue',
+    swallowtail: 'green'
+  };
+  const speciesTextureCache = {};
+  const speciesTexturePending = {};
+  const speciesAssemblyCache = {};
 
   let currentSpeciesKey = 'orange';
 
@@ -580,9 +571,18 @@ window.NXScene = (function () {
     butterflyRoot.add(butterflyMesh);
 
     butterflyMaterials = [material];
+    speciesTextureCache['orange'] = photoTexture;
 
     // Construct Separate Anatomical Parts for Initial Cinematic Assembly
     createAssemblyParts(photoTexture, material);
+
+    // Preload all species specimen textures for seamless real-time continuity
+    preloadAllSpeciesTextures();
+
+    // If user selected another species before geometry finished initializing, sync immediately
+    if (currentSpeciesKey !== 'orange') {
+      setSpecies(currentSpeciesKey);
+    }
 
     // Attach 3D Anchor Objects for the 9 Anatomy Features
     hotspotAnchors.forEach((anchor) => {
@@ -777,6 +777,8 @@ window.NXScene = (function () {
     const lwTex = createPartTexture(lwCanvas);
     const rwTex = createPartTexture(rwCanvas);
 
+    speciesAssemblyCache['orange'] = { bodyTex, lwTex, rwTex };
+
     const bodyMat = material.clone();
     bodyMat.map = bodyTex;
     butterflyMaterials.push(bodyMat);
@@ -817,8 +819,206 @@ window.NXScene = (function () {
     resetAssemblyToInitialState();
   }
 
+  function buildAssemblyPartsForSpecies(resolvedKey, img) {
+    if (!img) return null;
+    if (speciesAssemblyCache[resolvedKey]) return speciesAssemblyCache[resolvedKey];
+
+    const W = img.naturalWidth || img.width || 1024;
+    const H = img.naturalHeight || img.height || 1024;
+    const centerX = W * 0.5;
+    const scaleX = W / 1024;
+    const scaleY = H / 1024;
+
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = W;
+    srcCanvas.height = H;
+    const srcCtx = srcCanvas.getContext('2d');
+    srcCtx.drawImage(img, 0, 0, W, H);
+    const srcData = srcCtx.getImageData(0, 0, W, H).data;
+
+    // For upper rows (yNorm < 445), locate the inner wing boundary outside the antennae gap
+    const leftWingStartByRow = new Float32Array(H);
+    const rightWingStartByRow = new Float32Array(H);
+
+    for (let y = 0; y < H; y++) {
+      const yNorm = y / scaleY;
+      if (yNorm >= 445) continue;
+
+      let leftBoundary = centerX - 36 * scaleX;
+      let gapCount = 0;
+      const maxScan = Math.floor(190 * scaleX);
+      for (let dx = Math.floor(16 * scaleX); dx <= maxScan; dx++) {
+        const lx = Math.floor(centerX - dx);
+        if (lx < 0) break;
+        const alpha = srcData[(y * W + lx) * 4 + 3];
+        if (alpha <= 15) {
+          gapCount++;
+        } else {
+          if (gapCount >= 2) {
+            leftBoundary = lx + 1;
+            break;
+          }
+          gapCount = 0;
+        }
+      }
+      leftWingStartByRow[y] = leftBoundary;
+
+      let rightBoundary = centerX + 36 * scaleX;
+      gapCount = 0;
+      for (let dx = Math.floor(16 * scaleX); dx <= maxScan; dx++) {
+        const rx = Math.ceil(centerX + dx);
+        if (rx >= W) break;
+        const alpha = srcData[(y * W + rx) * 4 + 3];
+        if (alpha <= 15) {
+          gapCount++;
+        } else {
+          if (gapCount >= 2) {
+            rightBoundary = rx - 1;
+            break;
+          }
+          gapCount = 0;
+        }
+      }
+      rightWingStartByRow[y] = rightBoundary;
+    }
+
+    function createGenericPartCanvas(type) {
+      const c = document.createElement('canvas');
+      c.width = W;
+      c.height = H;
+      const ctx = c.getContext('2d');
+      const imgData = ctx.createImageData(W, H);
+      const data = imgData.data;
+
+      for (let y = 0; y < H; y++) {
+        const yNorm = y / scaleY;
+        const leftWingX = leftWingStartByRow[y];
+        const rightWingX = rightWingStartByRow[y];
+
+        for (let x = 0; x < W; x++) {
+          const idx = (y * W + x) * 4;
+          const origA = srcData[idx + 3];
+          if (origA === 0) continue;
+
+          const distFromCenter = Math.abs(x - centerX);
+          let keepFactor = 0;
+
+          if (type === 'body') {
+            if (yNorm < 445) {
+              if (x > leftWingX && x < rightWingX) {
+                keepFactor = 1.0;
+              }
+            } else if (yNorm < 600) {
+              const thoraxRadius = 46 * scaleX;
+              if (distFromCenter <= thoraxRadius) {
+                keepFactor = 1.0;
+              } else if (distFromCenter <= thoraxRadius + 16 * scaleX) {
+                keepFactor = 1.0 - (distFromCenter - thoraxRadius) / (16 * scaleX);
+              }
+            } else {
+              const abdomenRadius = 38 * scaleX;
+              if (distFromCenter <= abdomenRadius) {
+                keepFactor = 1.0;
+              } else if (distFromCenter <= abdomenRadius + 12 * scaleX) {
+                keepFactor = 1.0 - (distFromCenter - abdomenRadius) / (12 * scaleX);
+              }
+            }
+          } else if (type === 'leftWing') {
+            if (yNorm < 445) {
+              if (x <= leftWingX) keepFactor = 1.0;
+            } else if (x < centerX) {
+              const distToCenter = centerX - x;
+              const attachRadius = 42 * scaleX;
+              if (distToCenter >= attachRadius + 16 * scaleX) {
+                keepFactor = 1.0;
+              } else if (distToCenter >= attachRadius) {
+                keepFactor = (distToCenter - attachRadius) / (16 * scaleX);
+              }
+            }
+          } else if (type === 'rightWing') {
+            if (yNorm < 445) {
+              if (x >= rightWingX) keepFactor = 1.0;
+            } else if (x > centerX) {
+              const distToCenter = x - centerX;
+              const attachRadius = 42 * scaleX;
+              if (distToCenter >= attachRadius + 16 * scaleX) {
+                keepFactor = 1.0;
+              } else if (distToCenter >= attachRadius) {
+                keepFactor = (distToCenter - attachRadius) / (16 * scaleX);
+              }
+            }
+          }
+
+          data[idx + 0] = srcData[idx + 0];
+          data[idx + 1] = srcData[idx + 1];
+          data[idx + 2] = srcData[idx + 2];
+          data[idx + 3] = Math.round(origA * keepFactor);
+        }
+      }
+
+      ctx.putImageData(imgData, 0, 0);
+      return c;
+    }
+
+    function createTex(c) {
+      const tex = new THREE.CanvasTexture(c);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.generateMipmaps = true;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      if (renderer && renderer.capabilities) {
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      }
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    const parts = {
+      bodyTex: createTex(createGenericPartCanvas('body')),
+      lwTex: createTex(createGenericPartCanvas('leftWing')),
+      rwTex: createTex(createGenericPartCanvas('rightWing'))
+    };
+    speciesAssemblyCache[resolvedKey] = parts;
+    return parts;
+  }
+
+  function syncAssemblyPartMaterials(resolvedKey) {
+    if (!leftWingPartGroup || !rightWingPartGroup || !bodyPartGroup) return;
+    const tex = speciesTextureCache[resolvedKey];
+    if (!tex || !tex.image) return;
+
+    let parts = null;
+    try {
+      parts = buildAssemblyPartsForSpecies(resolvedKey, tex.image);
+    } catch (e) {
+      return;
+    }
+    if (!parts) return;
+
+    const lwMesh = leftWingPartGroup.children[0];
+    const rwMesh = rightWingPartGroup.children[0];
+    const bodyMesh = bodyPartGroup.children[0];
+
+    if (lwMesh && lwMesh.material) {
+      lwMesh.material.map = parts.lwTex;
+      lwMesh.material.color.setRGB(1, 1, 1);
+      lwMesh.material.needsUpdate = true;
+    }
+    if (rwMesh && rwMesh.material) {
+      rwMesh.material.map = parts.rwTex;
+      rwMesh.material.color.setRGB(1, 1, 1);
+      rwMesh.material.needsUpdate = true;
+    }
+    if (bodyMesh && bodyMesh.material) {
+      bodyMesh.material.map = parts.bodyTex;
+      bodyMesh.material.color.setRGB(1, 1, 1);
+      bodyMesh.material.needsUpdate = true;
+    }
+  }
+
   function resetAssemblyToInitialState() {
     isAssemblyComplete = false;
+    syncAssemblyPartMaterials(currentSpeciesKey);
     if (butterflyMesh) butterflyMesh.visible = false;
     if (assemblyGroup) assemblyGroup.visible = true;
 
@@ -1202,25 +1402,95 @@ window.NXScene = (function () {
     }
   }
 
+  function resolveSpeciesKey(speciesKey) {
+    if (!speciesKey) return null;
+    const resolved = speciesAliasMap[speciesKey] || speciesKey;
+    return speciesData[resolved] ? resolved : null;
+  }
+
+  function configureSpeciesTexture(tex) {
+    tex.encoding = THREE.sRGBEncoding;
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    if (renderer && renderer.capabilities) {
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    }
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  function loadSpeciesTexture(speciesKey, callback) {
+    const resolvedKey = resolveSpeciesKey(speciesKey);
+    if (!resolvedKey) return;
+
+    if (speciesTextureCache[resolvedKey]) {
+      if (typeof callback === 'function') callback(speciesTextureCache[resolvedKey], resolvedKey);
+      return;
+    }
+
+    if (!speciesTexturePending[resolvedKey]) {
+      speciesTexturePending[resolvedKey] = [];
+    }
+    if (typeof callback === 'function') {
+      speciesTexturePending[resolvedKey].push(callback);
+    }
+
+    if (speciesTexturePending[resolvedKey]._loading) return;
+    speciesTexturePending[resolvedKey]._loading = true;
+
+    const img = new Image();
+    img.onload = function () {
+      if (!(img.naturalWidth > 0 || img.width > 0)) {
+        delete speciesTexturePending[resolvedKey];
+        return;
+      }
+      const tex = configureSpeciesTexture(new THREE.Texture(img));
+      speciesTextureCache[resolvedKey] = tex;
+      const callbacks = speciesTexturePending[resolvedKey] || [];
+      delete speciesTexturePending[resolvedKey];
+      callbacks.forEach((cb) => cb(tex, resolvedKey));
+    };
+    img.onerror = function () {
+      delete speciesTexturePending[resolvedKey];
+    };
+
+    const embeddedSrc = window.SPECIES_BUTTERFLY_BASE64 && window.SPECIES_BUTTERFLY_BASE64[resolvedKey];
+    img.src = (embeddedSrc && embeddedSrc.length > 500) ? embeddedSrc : speciesData[resolvedKey].image;
+  }
+
+  function preloadAllSpeciesTextures() {
+    ['blue', 'orange', 'yellow', 'red', 'green', 'purple'].forEach((key) => {
+      if (!speciesTextureCache[key]) {
+        loadSpeciesTexture(key);
+      }
+    });
+  }
+
   /**
-   * Switch Active Species Morphology & Structural Coloration
+   * Switch Active Species Specimen Texture Directly (Zero Synthetic Color Filter)
    */
   function setSpecies(speciesKey) {
-    if (!speciesData[speciesKey]) return;
-    currentSpeciesKey = speciesKey;
-    const config = speciesData[speciesKey];
+    const resolvedKey = resolveSpeciesKey(speciesKey);
+    if (!resolvedKey) return;
+    currentSpeciesKey = resolvedKey;
 
-    butterflyMaterials.forEach((mat) => {
-      gsap.to(mat.color, {
-        r: config.colorFilter.r,
-        g: config.colorFilter.g,
-        b: config.colorFilter.b,
-        duration: 0.8,
-        ease: 'power2.out'
-      });
-      mat.roughness = config.roughness;
-      mat.metalness = config.metalness;
-      mat.needsUpdate = true;
+    loadSpeciesTexture(resolvedKey, (tex, loadedKey) => {
+      // Only apply the latest selected species in case of rapid switching
+      if (currentSpeciesKey !== loadedKey) return;
+
+      if (butterflyMesh && butterflyMesh.material) {
+        gsap.killTweensOf(butterflyMesh.material.color);
+        butterflyMesh.material.map = tex;
+        butterflyMesh.material.color.setRGB(1.0, 1.0, 1.0);
+        butterflyMesh.material.roughness = 0.85;
+        butterflyMesh.material.metalness = 0.0;
+        butterflyMesh.material.needsUpdate = true;
+      }
+
+      if (!isAssemblyComplete) {
+        syncAssemblyPartMaterials(loadedKey);
+      }
     });
   }
 
@@ -1430,12 +1700,12 @@ window.NXScene = (function () {
     lastFrameTime = time;
 
     // 1. Mouse Parallax Easing
-    mouse.x += (mouse.targetX - mouse.x) * 0.04;
-    mouse.y += (mouse.targetY - mouse.y) * 0.04;
+    mouse.x += (mouse.targetX - mouse.x) * 0.055;
+    mouse.y += (mouse.targetY - mouse.y) * 0.055;
 
     // 2. Camera Easing (Controlled Macro Zoom)
-    currentCameraPos.lerp(targetCameraPos, 0.055);
-    currentLookAt.lerp(targetLookAt, 0.055);
+    currentCameraPos.lerp(targetCameraPos, 0.085);
+    currentLookAt.lerp(targetLookAt, 0.085);
 
     camera.position.copy(currentCameraPos);
     camera.position.x += mouse.x * 0.05;
@@ -1444,21 +1714,36 @@ window.NXScene = (function () {
 
     // 3. Butterfly World Position, Scale & Rotation
     if (butterflyRoot) {
-      currentModelPos.lerp(targetModelPos, 0.055);
-      currentModelScale += (targetModelScale - currentModelScale) * 0.055;
+      currentModelPos.lerp(targetModelPos, 0.085);
+      currentModelScale += (targetModelScale - currentModelScale) * 0.085;
 
-      butterflyRoot.position.copy(currentModelPos);
+      // Subtle buoyant floating & gliding micro-motion (scaled softly, zero framing drift)
+      const glideScale = isInteractiveMode ? 0.0 : Math.min(1.0, currentModelScale / 0.35);
+      const glideAmp = 0.75 + flightIntensity * 0.55;
+      const floatX = Math.cos(time * 1.75) * 0.012 * glideScale * glideAmp;
+      const floatY = (Math.sin(time * 2.55) * 0.020 + Math.sin(time * 1.45) * 0.008) * glideScale * glideAmp;
+      const glideRoll = Math.sin(time * 2.05) * 0.016 * glideScale * glideAmp;
+
+      butterflyRoot.position.set(
+        currentModelPos.x + floatX,
+        currentModelPos.y + floatY,
+        currentModelPos.z
+      );
       butterflyRoot.scale.set(currentModelScale, currentModelScale, currentModelScale);
 
       if (isInteractiveMode) {
-        interactiveRotation.x += (interactiveTargetRot.x - interactiveRotation.x) * 0.08;
-        interactiveRotation.y += (interactiveTargetRot.y - interactiveRotation.y) * 0.08;
+        interactiveRotation.x += (interactiveTargetRot.x - interactiveRotation.x) * 0.10;
+        interactiveRotation.y += (interactiveTargetRot.y - interactiveRotation.y) * 0.10;
         butterflyRoot.rotation.set(interactiveRotation.x, interactiveRotation.y, 0);
       } else {
-        currentModelRot.x += (targetModelRot.x - currentModelRot.x) * 0.055;
-        currentModelRot.y += (targetModelRot.y - currentModelRot.y) * 0.055;
-        currentModelRot.z += (targetModelRot.z - currentModelRot.z) * 0.055;
-        butterflyRoot.rotation.copy(currentModelRot);
+        currentModelRot.x += (targetModelRot.x - currentModelRot.x) * 0.085;
+        currentModelRot.y += (targetModelRot.y - currentModelRot.y) * 0.085;
+        currentModelRot.z += (targetModelRot.z - currentModelRot.z) * 0.085;
+        butterflyRoot.rotation.set(
+          currentModelRot.x,
+          currentModelRot.y,
+          currentModelRot.z + glideRoll
+        );
       }
 
       if (window.scrollY > 40 && !isAssemblyComplete) {
@@ -1466,18 +1751,18 @@ window.NXScene = (function () {
       }
 
       // 4. Smooth Continuous 3D Wing Kinematics (Zero Crease Artifacts)
-      currentWingAngle += (targetWingAngle - currentWingAngle) * 0.065;
-      flightIntensity += (targetFlightIntensity - flightIntensity) * 0.06;
+      currentWingAngle += (targetWingAngle - currentWingAngle) * 0.095;
+      flightIntensity += (targetFlightIntensity - flightIntensity) * 0.09;
 
       if (butterflyMesh && basePositions) {
         const posAttr = butterflyMesh.geometry.attributes.position;
         const count = posAttr.count;
 
-        // Biological breathing with delicate vital micro-flutter
-        const breathFlutter = Math.sin(time * 2.2) * 0.025 + Math.sin(time * 24.0) * 0.015;
+        // Lively biological breathing with vital wing micro-flutter
+        const breathFlutter = Math.sin(time * 3.1) * 0.036 + Math.sin(time * 30.0) * 0.018;
 
-        // Realistic fast flight flap wave (rapid flutter ~28 rad/s with lively harmonics)
-        const flightFlap = Math.sin(time * 28.0) * 0.42 + Math.sin(time * 14.0) * 0.08;
+        // Energetic flight flap wave (lively wingbeats with organic harmonics)
+        const flightFlap = Math.sin(time * 34.0) * 0.46 + Math.sin(time * 17.0) * 0.10;
 
         const effectiveAngle = currentWingAngle + (1.0 - flightIntensity) * breathFlutter + flightIntensity * flightFlap;
 
@@ -1495,7 +1780,7 @@ window.NXScene = (function () {
             const cosA = Math.cos(angle);
             const sinA = Math.sin(angle);
             const span = dist - 0.12;
-            const tipWave = Math.sin(time * 2.95 + span * 1.5) * 0.012 * (span / 1.88);
+            const tipWave = Math.sin(time * 3.8 + span * 1.5) * 0.016 * (span / 1.88);
 
             if (bx > 0) {
               const newX = 0.12 + span * cosA;
@@ -1507,7 +1792,7 @@ window.NXScene = (function () {
               posAttr.setXYZ(i, newX, by, newZ);
             }
           } else {
-            const bodyBreath = Math.sin(time * 1.8) * 0.006;
+            const bodyBreath = Math.sin(time * 2.6) * 0.008;
             posAttr.setXYZ(i, bx, by, bz + bodyBreath);
           }
         }
